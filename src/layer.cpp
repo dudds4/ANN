@@ -1,45 +1,40 @@
 #include "layer.h"
+#include "neuralnet.h"
 #include "activationTypes.h"
 #include <exception>
-
+#include "math_help.h"
 
 double sigmoid(double x) 
 {
 	return 1.0f / (1 + exp(-1.0f * x));
 }
 
-void SigmoidLayer::activation(double *z, double *a, double *d, int n)
+void SigmoidLayer::activation(double *z, double *a)
 {
 	//TODO: optimize this loop
-	for(int i = 0; i < n; ++i)
+	for(int i = 0; i < n_outputs; ++i)
 	{
 		a[i] = sigmoid(z[i]);
-		d[i] = a[i] * (1 - a[i]);
 	}
 }
 
-Layer::Layer(int i, int o) : n_inputs(i), n_outputs(o) {}
-
-// compute y = Ax, where A is an m x n matrix
-void matrix_vector_mult(const double *A, const double *x, double *y, int m, int n)
+void SigmoidLayer::activationDeriv(const double *z, double *dz)
 {
-	//TODO: optimize this matrix multiplication
-	for(int r = 0; r < m; ++r)
+	if(!z || !dz) return;
+
+	for(int i = 0; i < n_outputs; ++i)
 	{
-		y[r] = 0;
-		for(int c = 0; c < n; ++c)
-		{
-			y[r] += A[r*n + c] * x[c];
-		}
-	}	
+		double a = sigmoid(z[i]);
+		dz[i] = a*(1-a);
+	}
 }
 
-void Layer::forward_prop(const double *x, const double *params, double *partials, double *a)
-{
-	if(!x || !params || !a)
-		return;
 
-	double z[n_outputs] = {0};
+Layer::Layer(int i, int o) : n_inputs(i), n_outputs(o) {}
+void Layer::forward_prop(const double *x, const double *params, double *z, double *a)
+{
+	if(!x || !params || !z || !a)
+		return;
 
 	const double *W = params;
 	const double *b = params + (n_inputs*n_outputs);
@@ -50,52 +45,64 @@ void Layer::forward_prop(const double *x, const double *params, double *partials
 	for(int r = 0; r < n_outputs; ++r)
 		z[r] += b[r];
 
-	double da_by_dz[n_outputs];
-	activation(z, a, da_by_dz, n_outputs);
-
-	if(partials)
-	{
-		double *W_partial = partials;
-		double *b_partial = partials + (n_inputs*n_outputs);
-
-		for(int i = 0; i < n_outputs; ++i)
-		{
-			for(int k = 0; k < n_inputs; ++k)
-			{
-				W_partial[i*n_outputs + k] = x[k] * da_by_dz[i];
-			}
-		}
-
-		for(int i = 0; i < n_outputs; ++i)
-			b_partial[i] = da_by_dz[i];
-
-	}
+	activation(z, a);
 }
 
+void Layer::forward_prop(const NeuralNetMemory* mem)
+{
+	if(!mem)
+		return;
+
+	forward_prop(mem->inputs, mem->params, mem->activation_cache, mem->outputs);
+}
+
+void Layer::activationDeriv(const double *z, double *dz)
+{
+	if(!dz) return;
+
+	for(int i = 0; i < n_outputs; ++i)
+		dz[i] = 1;
+}
+
+void Layer::back_prop(const double* da, NeuralNetMemory* mem, double *dparams, double *dx)
+{
+	// compute dJ / dz
+	double dz[n_outputs];
+	activationDeriv(mem->activation_cache, dz);
+	for(int i = 0; i < n_outputs; ++i)
+		dz[i] *= da[i];
+
+	double* dW = dparams;
+	double* db = dparams + (n_outputs*n_inputs);
+
+	// compute dW
+	for(int i = 0; i < n_outputs; ++i)
+	{
+		for(int k = 0; k < n_inputs; ++k)
+		{
+			int index = i*n_inputs+k;
+			dW[index] = mem->inputs[k] * dz[i];
+		}
+	}
+
+	// compute db
+	for(int i = 0; i < n_outputs; ++i)
+		db[i] = dz[i];
+
+	// compute dx
+	matrix_transpose_vector_mult(mem->params, dz, dx, n_outputs, n_inputs);
+}
 
 int Layer::numParams() const
 {
 	return n_outputs*n_inputs + n_outputs;
 }
 
-void Layer::activation(double *z, double *a, double *d, int n)
+void Layer::activation(double *z, double *a)
 {
 	//TODO: optimize this loop
-	for(int i = 0; i < n; ++i)
+	for(int i = 0; i < n_outputs; ++i)
 	{
 		a[i] = z[i];
-		d[i] = 1;
 	}
 }
-
-// void Layer::setParent(Layer* p)
-// {
-// 	if(this == p) { throw 1; }
-// 	if(p.n_outputs != this->n_inputs) { throw 2; }
-
-// }
-
-// Layer* generateLayer(int i, int o, int a)
-// {
-
-// }

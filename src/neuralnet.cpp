@@ -1,11 +1,15 @@
 #include "neuralnet.h"
 #include "layer.h"
 #include "stdlib.h"
+#include <iostream>
 
 void NeuralNetMemory::allocate(int n_in, int n_out, int n_params)
 {
 	if(inputs) delete[] inputs;
 	inputs = new double[n_in];
+
+	if(activation_cache) delete[] activation_cache;
+	activation_cache = new double[n_out];
 
 	if(outputs) delete[] outputs;
 	outputs = new double[n_out];
@@ -13,18 +17,16 @@ void NeuralNetMemory::allocate(int n_in, int n_out, int n_params)
 	if(params) delete[] params;
 	params = new double[n_params];
 
-	if(partials) delete[] partials;
-	partials = new double[n_params];
-
+	outSize = n_out;
 	paramSize = n_params;
 }
 
 NeuralNetMemory::~NeuralNetMemory()
 {
+	if(inputs) delete[] inputs;
+	if(activation_cache) delete[] activation_cache;
 	if(outputs) delete[] outputs;
 	if(params) delete[] params;
-	if(partials) delete[] partials;
-	if(inputs) delete[] inputs;
 }
 
 double randomWeight()
@@ -91,25 +93,52 @@ void NeuralNet::setInputs(const std::vector<double>& values)
 		mem.inputs[i] = values.at(i);
 }
 
-void NeuralNet::compute()
+void NeuralNet::forward_prop()
 {
 
 	const double *i = mem.inputs;
+	double* z = mem.activation_cache;
 	double* o = mem.outputs;
 	double* p = mem.params;
-	double* pd = mem.partials;
 
 	int num_params;
 	for(Layer* l : layers)
 	{
-		l->forward_prop(i, p, pd, o);
+		l->forward_prop(i, p, z, o);
 
 		num_params = l->numParams();
 		
 		i = o;
 		p += num_params;
-		pd += num_params;
+		z += l->n_outputs;
 		o += l->n_outputs;
 	}
 }
 
+void NeuralNet::back_prop()
+{
+	// int n_out = layers->back().n_outputs;
+	// double y[n_out];
+
+	// // TODO: use loss function here
+	// for(int i = 0; i < n_out; ++i)
+	// 	y[i] = 1;
+
+	// const double *i = mem.inputs;
+	// double* o = mem.outputs;
+	// double* p = mem.params;
+	// double* pd = mem.partials;
+
+	// int num_params;
+	// for(Layer* l : layers)
+	// {
+	// 	l->forward_prop(i, p, pd, o);
+
+	// 	num_params = l->numParams();
+		
+	// 	i = o;
+	// 	p += num_params;
+	// 	pd += num_params;
+	// 	o += l->n_outputs;
+	// }
+}

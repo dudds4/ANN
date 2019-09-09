@@ -3,8 +3,8 @@ RM = rm -f
 CC = g++
 CFLAGS = -O2 -std=c++17 -g
 
-LIBHDRS = inc/layer.h inc/neuralnet.h inc/activationTypes.h
-LIBSRCS = src/layer.cpp src/neuralnet.cpp
+LIBHDRS = inc/layer.h inc/neuralnet.h inc/activationTypes.h inc/math_help.h
+LIBSRCS = src/layer.cpp src/neuralnet.cpp src/math_help.cpp
 
 INCLUDES = inc
 
