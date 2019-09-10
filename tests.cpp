@@ -109,30 +109,17 @@ int test_general_layer(Layer *l, NeuralNetMemory *mem)
 
 	// check the partials for x
 
-	// or dont.?
+	for(int i = 0; i < n_in; ++i)
+	{
+		double sum = 0;
+		for(int o = 0; o < n_out; ++o)
+		{
+			double deriv = measure_input_derivative(l, mem, i, o);
+			sum += deriv;
+		}
 
-	// for(int i = 0; i < n_in; ++i)
-	// {
-	// 	double sum = 0;
-	// 	cout << endl;
-	// 	for(int o = 0; o < n_out; ++o)
-	// 	{
-	// 		double deriv = measure_input_derivative(l, mem, i, o);
-	// 		// cout << "d" << i << "/d" << j << "=" << deriv << "=" << mem->params[i*n_out + j] << ", ";
-	// 		sum += deriv;
-	// 	}
-
-
-	// 	// cout << endl;
-	// 	cout << sum << " " << dinputs[i] << " ";
-	// }
-
-	// cout << endl;
-
-	// for(int i = 0; i < n_in; ++i)
-	// 	cout << dinputs[i] << ", ";
-
-	// cout << endl;
+		ASSERT_EQUAL(sum, dinputs[i]);
+	}
 
 	return 0;
 }
@@ -216,8 +203,6 @@ int sigmoid_layer()
 
 }
 
-
-// matrix_vector_mult(const double *A, const double *x, double *y, int m, int n)
 int matrix_mult()
 {
 	{
@@ -233,8 +218,8 @@ int matrix_mult()
 	}
 
 	{
-		int m = 3, n = 2;
-		double A[m*n] = {1,4,2,5,3,6};
+		int m = 2, n = 3;
+		double A[m*n] = {1,2,3,4,5,6};
 		double x[n] = {-2, 3};
 		double expected[m] = {10, 11, 12};
 		double actual[m];
@@ -255,7 +240,6 @@ int main()
 	TEST(matrix_mult, "Matrix Math");
 	TEST(test_layer, "Normal Layer");
 	TEST(sigmoid_layer, "Sigmoid Layer");
-
 
 	cout << "Tests complete.\n";
 	return 0;
